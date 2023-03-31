@@ -9,30 +9,12 @@ provider:
 
 
 functions:
-  createProduct:
-    handler: src/handlers.createProduct
-    events:
-      - httpApi:
-          path: /product
-          method: post
-  listProduct:
-    handler: src/handlers.listProduct
-    events:
-      - httpApi:
-          path: /product
-          method: get
   cadastrarCandidato:
     handler: src/handlers.cadastrarCandidato
     events:
       - httpApi:
           path: /candidato
           method: post
-  listarCandidatos:
-    handler: src/handlers.listarCandidatos
-    events:
-      - httpApi:
-          path: /candidato
-          method: get
   buscarCandidatos:
     handler: src/handlers.buscarCandidatos
     events:
@@ -45,18 +27,6 @@ functions:
       - httpApi:
           path: /mock
           method: post
-
-# iam:
-#   role:
-#     statements:
-#       - Effect: Allow
-#         Action:
-#           - "dynamodb:PutItem"
-#           - "dynamodb:GetItem"
-#           - "dynamodb:DeleteItem"
-#           - "dynamodb:Scan"
-#         Resource:
-#           - { "Fn::GetAtt": ["ProductsTable", "Arn"] }
 
 
 custom:

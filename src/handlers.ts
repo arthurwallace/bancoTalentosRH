@@ -2,6 +2,9 @@ import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import AWS from 'aws-sdk'
 import { v4 } from "uuid";
 import * as yup from "yup";
+import { schemaCandidato, schemaBuscaCandidatos } from "./schemas";
+import { mockCandidatos } from "./mockCandidatos";
+import { handleError } from "./errorHandling";
 
 const docClient = new AWS.DynamoDB.DocumentClient(
   {
@@ -19,25 +22,11 @@ const headers = {
 };
 
 
-
-const schema = yup.object().shape({
-  dadosPessoais: yup.object().shape({
-    nome: yup.string().required(),
-    email: yup.string().email().required(),
-    telefone: yup.string().required(),
-    linkedin: yup.string().url(),
-  }),
-  senioridade: yup.string().oneOf(["estágio", "júnior", "pleno", "sênior"]).required(),
-  skills: yup.array().of(yup.string().required()).min(1).required(),
-});
-
-
-
 export const cadastrarCandidato = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   try {
     const reqBody = JSON.parse(event.body as string);
 
-    await schema.validate(reqBody, { abortEarly: false });
+    await schemaCandidato.validate(reqBody, { abortEarly: false });
 
     reqBody.senioridade = reqBody.senioridade.toLowerCase();
     reqBody.skills = reqBody.skills.map((skill: string) => skill.toLowerCase());
@@ -65,144 +54,12 @@ export const cadastrarCandidato = async (event: APIGatewayProxyEvent): Promise<A
 };
 
 
-export const mockDados = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-  try {
 
-    let candidatos = [
-      {
-        "dadosPessoais": {
-          "nome": "Lucas Rodrigues",
-          "email": "lucasrodrigues@gmail.com",
-          "telefone": "(11) 99999-9999",
-          "linkedin": "https://www.linkedin.com/in/lucasrodrigues/"
-        },
-        "senioridade": "pleno",
-        "skills": [
-          "JavaScript",
-          "React",
-          "Node.js",
-          "SQL",
-          "NoSQL"
-        ]
-      },
-      {
-        "dadosPessoais": {
-          "nome": "Juliana Oliveira",
-          "email": "julianaoliveira@gmail.com",
-          "telefone": "(21) 99999-9999",
-          "linkedin": "https://www.linkedin.com/in/julianaoliveira/"
-        },
-        "senioridade": "júnior",
-        "skills": [
-          "Python",
-          "Django",
-          "HTML",
-          "CSS",
-          "JavaScript"
-        ]
-      },
-      {
-        "dadosPessoais": {
-          "nome": "Bruno Silva",
-          "email": "brunosilva@gmail.com",
-          "telefone": "(31) 99999-9999",
-          "linkedin": "https://www.linkedin.com/in/brunosilva/"
-        },
-        "senioridade": "sênior",
-        "skills": [
-          "Java",
-          "Spring",
-          "SQL",
-          "MongoDB",
-          "Kafka"
-        ]
-      },
-      {
-        "dadosPessoais": {
-          "nome": "Carla Santos",
-          "email": "carlasantos@gmail.com",
-          "telefone": "(11) 99999-9999",
-          "linkedin": "https://www.linkedin.com/in/carlasantos/"
-        },
-        "senioridade": "pleno",
-        "skills": [
-          "JavaScript",
-          "React",
-          "Node.js",
-          "MySQL",
-          "MongoDB"
-        ]
-      },
-      {
-        "dadosPessoais": {
-          "nome": "Rafaela Souza",
-          "email": "rafaelasouza@gmail.com",
-          "telefone": "(21) 99999-9999",
-          "linkedin": "https://www.linkedin.com/in/rafaelasouza/"
-        },
-        "senioridade": "júnior",
-        "skills": [
-          "PHP",
-          "Laravel",
-          "HTML",
-          "CSS",
-          "JavaScript"
-        ]
-      },
-      {
-        "dadosPessoais": {
-          "nome": "Fernando Oliveira",
-          "email": "fernandooliveira@gmail.com",
-          "telefone": "(31) 99999-9999",
-          "linkedin": "https://www.linkedin.com/in/fernandooliveira/"
-        },
-        "senioridade": "sênior",
-        "skills": [
-          "Python",
-          "Django",
-          "PostgreSQL",
-          "Redis",
-          "Elasticsearch"
-        ]
-      }
-    ]
-
-    candidatos.map(async (item, i) => {
-      item.senioridade = item.senioridade.toLowerCase();
-      item.skills = item.skills.map((skill: string) => skill.toLowerCase());
-      const candidato = {
-        ...item,
-        candidadoID: v4(),
-      };
-
-      await docClient
-        .put({
-          TableName: tableName,
-          Item: candidato,
-        })
-        .promise();
-
-    })
-
-    return {
-      statusCode: 201,
-      headers,
-      body: JSON.stringify(candidatos),
-    };
-  } catch (e) {
-    return handleError(e);
-  }
-};
-
-export const buscaCandidatosSchema = yup.object().shape({
-  senioridade: yup.string(),
-  skills: yup.string(),
-});
 
 export const buscarCandidatos = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   try {
 
-    const { senioridade, skills } = await buscaCandidatosSchema.validate(event.queryStringParameters, {
+    const { senioridade, skills } = await schemaBuscaCandidatos.validate(event.queryStringParameters, {
       abortEarly: false,
     });
 
@@ -251,19 +108,27 @@ export const buscarCandidatos = async (event: APIGatewayProxyEvent): Promise<API
 
     const candidatos = (<any>result.Items);
 
-    const vagaSkills = skillsList.length;
-    const resultado = candidatos.map((candidato: { skills: never[]; }) => {
+    const resultado = candidatos.map((candidato: { skills: never[]; candidadoID: any; dadosPessoais: any; senioridade: any; }) => {
       const candidatoSkills = candidato.skills || [];
       const numSkillsMatch = candidatoSkills.filter((skill: any) => skillsList.includes(skill)).length;
-      const compatibilidade = Math.round((numSkillsMatch / vagaSkills) * 100);
+      const compatibilidade = Math.round((numSkillsMatch / skillsList.length) * 100);
 
       return {
-        ...candidato,
-        compatibilidade: `${compatibilidade}%`,
+        candidadoID: candidato.candidadoID,
+        dadosPessoais: candidato.dadosPessoais,
+        senioridade: candidato.senioridade,
+        skills: candidato.skills,
+        compatibilidade,
       };
-    }).sort((a: { nota: number }, b: { nota: number }) => b.nota - a.nota);;
-
-
+    })
+    .sort((a: { compatibilidade: number }, b: { compatibilidade: number }) => b.compatibilidade - a.compatibilidade)
+    .map((candidato: { compatibilidade: number }) => {
+      return {
+        ...candidato,
+        compatibilidade: `${candidato.compatibilidade}%`,
+      };
+    });
+    
     return {
       statusCode: 200,
       headers,
@@ -275,60 +140,38 @@ export const buscarCandidatos = async (event: APIGatewayProxyEvent): Promise<API
 };
 
 
-export const listarCandidatos = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+
+
+
+export const mockDados = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   try {
-    const output = await docClient
-      .scan({
-        TableName: tableName,
-      })
-      .promise();
+
+    let candidatos = mockCandidatos;
+
+    candidatos.map(async (item, i) => {
+      item.senioridade = item.senioridade.toLowerCase();
+      item.skills = item.skills.map((skill: string) => skill.toLowerCase());
+      const candidato = {
+        ...item,
+        candidadoID: v4(),
+      };
+
+      await docClient
+        .put({
+          TableName: tableName,
+          Item: candidato,
+        })
+        .promise();
+
+    })
 
     return {
-      statusCode: 200,
+      statusCode: 201,
       headers,
-      body: JSON.stringify(output.Items),
+      body: JSON.stringify(candidatos),
     };
   } catch (e) {
     return handleError(e);
   }
 };
 
-
-
-
-//Error handling
-class HttpError extends Error {
-  constructor(public statusCode: number, body: Record<string, unknown> = {}) {
-    super(JSON.stringify(body));
-  }
-}
-
-const handleError = (e: unknown) => {
-  if (e instanceof yup.ValidationError) {
-    return {
-      statusCode: 400,
-      headers,
-      body: JSON.stringify({
-        errors: e.errors,
-      }),
-    };
-  }
-
-  if (e instanceof SyntaxError) {
-    return {
-      statusCode: 400,
-      headers,
-      body: JSON.stringify({ error: `corpo da requisição inválido : "${e.message}"` }),
-    };
-  }
-
-  if (e instanceof HttpError) {
-    return {
-      statusCode: e.statusCode,
-      headers,
-      body: e.message,
-    };
-  }
-
-  throw e;
-};

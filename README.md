@@ -30,6 +30,10 @@ Lembre-se de configurar suas credenciais da AWS antes de fazer deploy do projeto
 
 As seguintes rotas estão disponíveis:
 
+##### - POST /mock
+Cadastra candidatos fictícios para possibilitar o teste do enpoint de busca. Não é necessário enviar nenhum body.
+
+
 ##### - POST /candidatos
 Cadastra um novo candidato. É necessário enviar um objeto JSON com a seguinte estrutura:
 
@@ -44,30 +48,6 @@ Cadastra um novo candidato. É necessário enviar um objeto JSON com a seguinte 
   "senioridade": "estágio" | "júnior" | "pleno" | "sênior",
   "skills": string[]
 }
-```
-
-##### - GET /candidatos
-Retorna a lista de candidatos cadastrados. Atualmente, essa lista é gerada a partir de um mock de dados pré-configurado.
-
- ```json
-{
-    "candidadoID": "9a7bf4b0-0ffd-4a57-9d7a-f1de75d16f3f",
-    "dadosPessoais": {
-      "nome": "Bruno Silva",
-      "telefone": "(31) 99999-9999",
-      "linkedin": "https://www.linkedin.com/in/brunosilva/",
-      "email": "brunosilva@gmail.com"
-    },
-    "senioridade": "sênior",
-    "skills": [
-      "java",
-      "spring",
-      "sql",
-      "mongodb",
-      "kafka"
-    ]
-  }
-  
 ```
 
 ##### - GET /buscarCandidatos
