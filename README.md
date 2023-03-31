@@ -104,5 +104,5 @@ Retorna uma lista de candidatos que atendam aos critérios de busca especificado
 
 
 
-Este projeto foi desenvolvido por Arthur Wallace faz parte do desafio técnico para a vaga de desenvolvedor na Itera.
+Este projeto foi desenvolvido por Arthur Wallace faz parte do desafio técnico para a vaga de desenvolvedor na InHire.
 
