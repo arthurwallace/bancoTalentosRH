@@ -1,0 +1,90 @@
+service: bancoTalentos
+
+frameworkVersion: "3"
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  lambdaHashingVersion: 20201221
+
+
+functions:
+  createProduct:
+    handler: src/handlers.createProduct
+    events:
+      - httpApi:
+          path: /product
+          method: post
+  listProduct:
+    handler: src/handlers.listProduct
+    events:
+      - httpApi:
+          path: /product
+          method: get
+  cadastrarCandidato:
+    handler: src/handlers.cadastrarCandidato
+    events:
+      - httpApi:
+          path: /candidato
+          method: post
+  listarCandidatos:
+    handler: src/handlers.listarCandidatos
+    events:
+      - httpApi:
+          path: /candidato
+          method: get
+  buscarCandidatos:
+    handler: src/handlers.buscarCandidatos
+    events:
+      - httpApi:
+          path: /buscar
+          method: get
+  mock:
+    handler: src/handlers.mockDados
+    events:
+      - httpApi:
+          path: /mock
+          method: post
+
+# iam:
+#   role:
+#     statements:
+#       - Effect: Allow
+#         Action:
+#           - "dynamodb:PutItem"
+#           - "dynamodb:GetItem"
+#           - "dynamodb:DeleteItem"
+#           - "dynamodb:Scan"
+#         Resource:
+#           - { "Fn::GetAtt": ["ProductsTable", "Arn"] }
+
+
+custom:
+  dynamodb:
+    stages:
+      - dev
+    start:
+      migrate: true
+  serverless-offline:
+    resourceRoutes: true
+
+plugins:
+  - serverless-plugin-typescript
+  - serverless-dynamodb-local
+  - serverless-offline
+
+resources:
+  Resources:
+    ProductsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: CandidatosTable
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        AttributeDefinitions:
+          - AttributeName: candidadoID
+            AttributeType: S
+        KeySchema:
+          - AttributeName: candidadoID
+            KeyType: HASH
